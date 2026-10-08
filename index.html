@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>二年级学习小帮手 🌈</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f7ff; color: #333; }
+  .header { background: linear-gradient(135deg, #7fb5f0, #a8d8f0); color: #fff; text-align: center; padding: 18px 12px; font-size: 26px; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .tabs { display: flex; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 10; }
+  .tab { flex: 1; text-align: center; padding: 14px 4px; font-size: 19px; cursor: pointer; border-bottom: 4px solid transparent; color: #666; }
+  .tab.active { color: #2a7de1; border-bottom-color: #2a7de1; font-weight: bold; background: #f0f7ff; }
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .bigbtn { display: block; width: 100%; min-height: 56px; margin: 10px 0; padding: 14px 16px; font-size: 24px; border: none; border-radius: 14px; background: #e8f3ff; color: #1a5cb0; cursor: pointer; transition: transform .1s; }
+  .bigbtn:active { transform: scale(.97); }
+  .bigbtn.primary { background: #2a7de1; color: #fff; font-weight: bold; }
+  .bigbtn.green { background: #e6f9e6; color: #1a7a1a; }
+  .bigbtn.correct { background: #4caf50 !important; color: #fff !important; }
+  .bigbtn.wrong { background: #f44336 !important; color: #fff !important; }
+  .bigbtn:disabled { opacity: .85; cursor: default; }
+  .question { font-size: 30px; font-weight: bold; text-align: center; margin: 12px 0 20px; line-height: 1.5; }
+  .progress { display: flex; justify-content: space-between; font-size: 18px; color: #666; margin-bottom: 8px; }
+  .bar { height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; margin-bottom: 16px; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #7fb5f0, #4caf50); border-radius: 5px; transition: width .3s; }
+  .feedback { text-align: center; font-size: 22px; min-height: 40px; margin: 8px 0; font-weight: bold; }
+  .feedback.good { color: #2e9e2e; }
+  .feedback.bad { color: #d33; }
+  @keyframes praise { 0% { transform: scale(.5); opacity: 0; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .praise-anim { display: inline-block; animation: praise .5s ease; font-size: 40px; }
+  .stars { font-size: 54px; text-align: center; margin: 10px 0; }
+  .score-big { font-size: 34px; text-align: center; font-weight: bold; margin: 8px 0; }
+  .mistake-item { background: #fff8f0; border: 1px solid #ffd9a0; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .mistake-item .mq { font-size: 22px; font-weight: bold; }
+  .mistake-item .ma { font-size: 18px; color: #2e9e2e; margin-top: 4px; }
+  .mistake-item .mw { font-size: 18px; color: #d33; margin-top: 2px; }
+  .mistake-item button { min-height: 48px; font-size: 19px; margin-top: 8px; padding: 8px 20px; border-radius: 10px; border: none; background: #ff9f2e; color: #fff; cursor: pointer; }
+  .group-title { font-size: 22px; font-weight: bold; margin: 18px 0 10px; color: #1a5cb0; }
+  .slot { width:52px; height:62px; border:3px dashed #9ec7f0; border-radius:12px; font-size:32px; font-weight:bold; display:flex; align-items:center; justify-content:center; color:#1a5cb0; background:#f7fbff; cursor:pointer; }
+  .slot-wrong { border-color:#f44336; color:#f44336; animation:shake .4s; }
+  .tile { min-width:56px; min-height:56px; padding:10px 14px; font-size:28px; font-weight:bold; border:none; border-radius:14px; background:#fff3d6; color:#b07800; box-shadow:0 2px 6px rgba(0,0,0,.1); cursor:pointer; }
+  .tile:disabled { opacity:.25; }
+  .tile:active { transform:scale(.93); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .hidden { display: none; }
+  .encourage { text-align: center; font-size: 20px; color: #666; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="header">二年级学习小帮手 🌈</div>
+<div class="tabs">
+  <div class="tab active" data-s="yuwen">📖 语文</div>
+  <div class="tab" data-s="shuxue">🔢 数学</div>
+  <div class="tab" data-s="yingyu">🔤 英语</div>
+  <div class="tab" data-s="mistakes">📝 错题本 <span id="mcount"></span></div>
+</div>
+<div class="container">
+  <div id="view-home"></div>
+  <div id="view-quiz" class="hidden"></div>
+  <div id="view-result" class="hidden"></div>
+  <div id="view-mistakes" class="hidden"></div>
+</div>
+<script>
+// ===== 题库（由 Pi 生成后合并，初始化为空数组） =====
+const QB = { yuwen:{pinyin:[],zuci:[]}, shuxue:{kousuan:[],chengfa:[]}, yingyu:{zh2en:[],en2zh:[],spell:[]} };
+QB.yuwen.pinyin = [{q:"mā ma",options:["妈妈","爸爸","奶奶","哥哥"],answer:0},{q:"bà ba",options:["爷爷","爸爸","姐姐","弟弟"],answer:1},{q:"nǎi nai",options:["妹妹","爷爷","奶奶","姐姐"],answer:2},{q:"gē ge",options:["弟弟","妹妹","爷爷","哥哥"],answer:3},{q:"jiě jie",options:["姐姐","哥哥","弟弟","妹妹"],answer:0},{q:"dì di",options:["妹妹","弟弟","姐姐","爷爷"],answer:1},{q:"mèi mei",options:["爷爷","奶奶","妹妹","哥哥"],answer:2},{q:"xué xiào",options:["学习","学生","老师","学校"],answer:3},{q:"xué xí",options:["学习","学校","同学","学生"],answer:0},{q:"xué sheng",options:["老师","学生","学习","同学"],answer:1},{q:"lǎo shī",options:["同学","学生","老师","学习"],answer:2},{q:"tóng xué",options:["学校","老师","学生","同学"],answer:3},{q:"huā duǒ",options:["花朵","白云","太阳","月亮"],answer:0},{q:"bái yún",options:["太阳","白云","星星","小鸟"],answer:1},{q:"tài yáng",options:["月亮","星星","太阳","白云"],answer:2},{q:"yuè liang",options:["小草","大树","花朵","月亮"],answer:3},{q:"xīng xing",options:["星星","小鸟","小鱼","大树"],answer:0},{q:"xiǎo niǎo",options:["小鱼","小鸟","小草","春天"],answer:1},{q:"xiǎo yú",options:["大树","小草","小鱼","秋天"],answer:2},{q:"dà shù",options:["春天","秋天","苹果","大树"],answer:3},{q:"xiǎo cǎo",options:["小草","香蕉","苹果","春天"],answer:0},{q:"chūn tiān",options:["秋天","春天","小草","大树"],answer:1},{q:"qiū tiān",options:["苹果","香蕉","秋天","春天"],answer:2},{q:"píng guǒ",options:["小草","大树","白云","苹果"],answer:3},{q:"xiāng jiāo",options:["香蕉","苹果","月亮","星星"],answer:0}];
+QB.yuwen.zuci = [{q:"学",options:["学飞","学跑","学跳","学校"],answer:3},{q:"校",options:["校飞","校跑","校门","校跳"],answer:2},{q:"老",options:["老飞","老师","老跑","老跳"],answer:1},{q:"同",options:["同学","同飞","同跑","同跳"],answer:0},{q:"花",options:["花飞","花跑","花跳","花朵"],answer:3},{q:"云",options:["云飞","云跑","云朵","云跳"],answer:2},{q:"阳",options:["阳飞","阳光","阳跑","阳跳"],answer:1},{q:"月",options:["月亮","月飞","月跑","月跳"],answer:0},{q:"星",options:["星飞","星跑","星跳","星星"],answer:3},{q:"鸟",options:["鸟飞","鸟跑","鸟窝","鸟跳"],answer:2},{q:"鱼",options:["鱼飞","鱼头","鱼跑","鱼跳"],answer:1},{q:"树",options:["树木","树飞","树跑","树跳"],answer:0},{q:"草",options:["草飞","草跑","草跳","草地"],answer:3},{q:"春",options:["春飞","春跑","春天","春跳"],answer:2},{q:"秋",options:["秋飞","秋天","秋跑","秋跳"],answer:1},{q:"苹",options:["苹果","苹飞","苹跑","苹跳"],answer:0},{q:"香",options:["香飞","香跑","香跳","香蕉"],answer:3},{q:"果",options:["果飞","果跑","果园","果跳"],answer:2},{q:"数",options:["数飞","数学","数跑","数跳"],answer:1},{q:"字",options:["字典","字飞","字跑","字跳"],answer:0},{q:"书",options:["书飞","书跑","书跳","书本"],answer:3},{q:"铅",options:["铅飞","铅跑","铅笔","铅跳"],answer:2},{q:"纸",options:["纸飞","纸巾","纸跑","纸跳"],answer:1},{q:"桌",options:["桌子","桌飞","桌跑","桌跳"],answer:0},{q:"今",options:["今飞","今跑","今跳","今天"],answer:3}];
+QB.shuxue.kousuan = [{"q":"36+27=？","options":["63","62","53","73"],"answer":0},{"q":"45+38=？","options":["73","83","82","93"],"answer":1},{"q":"29+46=？","options":["65","74","75","85"],"answer":2},{"q":"54+29=？","options":["83","73","82","93"],"answer":0},{"q":"17+58=？","options":["65","75","74","85"],"answer":1},{"q":"63+19=？","options":["72","82","92","81"],"answer":1},{"q":"38+47=？","options":["75","84","85","95"],"answer":2},{"q":"26+57=？","options":["83","73","82","93"],"answer":0},{"q":"49+35=？","options":["74","84","83","94"],"answer":1},{"q":"58+26=？","options":["74","83","84","94"],"answer":2},{"q":"72+18=？","options":["80","90","89","91"],"answer":1},{"q":"35+48=？","options":["73","82","83","93"],"answer":2},{"q":"64+28=？","options":["82","92","91","93"],"answer":1},{"q":"50-18=？","options":["32","22","42","30"],"answer":0},{"q":"73-29=？","options":["44","54","34","45"],"answer":0},{"q":"81-46=？","options":["35","45","25","36"],"answer":0},{"q":"64-28=？","options":["46","36","35","45"],"answer":1},{"q":"92-47=？","options":["55","35","45","44"],"answer":2},{"q":"70-26=？","options":["54","34","44","45"],"answer":2},{"q":"45-17=？","options":["18","38","27","28"],"answer":3},{"q":"62-39=？","options":["33","13","22","23"],"answer":3},{"q":"80-46=？","options":["44","24","33","34"],"answer":3},{"q":"91-58=？","options":["43","23","32","33"],"answer":3},{"q":"74-38=？","options":["46","26","35","36"],"answer":3},{"q":"56-29=？","options":["37","17","26","27"],"answer":3}];
+QB.shuxue.chengfa = [{"q":"二三（ ）","options":["八","六","五","九"],"answer":1},{"q":"二四（ ）","options":["六","七","八","十"],"answer":2},{"q":"二六（ ）","options":["十四","十","十一","十二"],"answer":3},{"q":"二八（ ）","options":["十六","十四","十八","十五"],"answer":0},{"q":"三三（ ）","options":["八","九","六","十二"],"answer":1},{"q":"三四（ ）","options":["十五","十","十二","十四"],"answer":2},{"q":"三六（ ）","options":["十五","二十一","十七","十八"],"answer":3},{"q":"三七（ ）","options":["二十一","十八","二十四","二十"],"answer":0},{"q":"四四（ ）","options":["十二","十六","二十","十五"],"answer":1},{"q":"四五（ ）","options":["十六","二十四","二十","十九"],"answer":2},{"q":"四七（ ）","options":["二十四","三十二","二十七","二十八"],"answer":3},{"q":"四九（ ）","options":["三十六","三十二","四十","三十五"],"answer":0},{"q":"五五（ ）","options":["二十","二十五","三十","二十四"],"answer":1},{"q":"五六（ ）","options":["二十五","三十五","三十","二十九"],"answer":2},{"q":"五八（ ）","options":["三十五","四十五","三十九","四十"],"answer":3},{"q":"五九（ ）","options":["四十五","四十","五十四","四十四"],"answer":0},{"q":"六六（ ）","options":["三十","三十六","四十二","三十五"],"answer":1},{"q":"六七（ ）","options":["三十六","四十八","四十二","四十一"],"answer":2},{"q":"六八（ ）","options":["四十二","五十四","四十七","四十八"],"answer":3},{"q":"七七（ ）","options":["四十九","四十二","五十六","四十八"],"answer":0},{"q":"七八（ ）","options":["四十九","五十六","六十三","五十五"],"answer":1},{"q":"七九（ ）","options":["五十六","七十二","六十三","六十二"],"answer":2},{"q":"八八（ ）","options":["五十六","七十二","六十三","六十四"],"answer":3},{"q":"八九（ ）","options":["七十二","六十四","八十一","七十一"],"answer":0},{"q":"九九（ ）","options":["七十二","八十一","九十","八十"],"answer":1}];
+QB.yingyu.zh2en = [{q:"红色 🔴",options:["red","blue","green","yellow"],answer:0},{q:"蓝色 🔵",options:["black","blue","white","orange"],answer:1},{q:"绿色 🟢",options:["pink","purple","green","brown"],answer:2},{q:"黄色 🟡",options:["black","white","orange","yellow"],answer:3},{q:"橙色 🟠",options:["orange","pink","purple","brown"],answer:0},{q:"小狗 🐶",options:["cat","dog","bird","fish"],answer:1},{q:"小猫 🐱",options:["panda","tiger","cat","monkey"],answer:2},{q:"小鸟 🐦",options:["fish","panda","tiger","bird"],answer:3},{q:"小鱼 🐟",options:["fish","dog","cat","bird"],answer:0},{q:"熊猫 🐼",options:["tiger","panda","monkey","elephant"],answer:1},{q:"三 3️⃣",options:["two","four","three","five"],answer:2},{q:"七 7️⃣",options:["six","eight","nine","seven"],answer:3},{q:"十 🔟",options:["ten","eleven","twelve","nine"],answer:0},{q:"十五 1️⃣5️⃣",options:["fourteen","fifteen","sixteen","thirteen"],answer:1},{q:"二十 2️⃣0️⃣",options:["eighteen","nineteen","twenty","seventeen"],answer:2},{q:"妈妈 👩",options:["father","brother","sister","mother"],answer:3},{q:"爸爸 👨",options:["father","mother","grandfather","grandmother"],answer:0},{q:"兄弟 👦",options:["sister","brother","mother","father"],answer:1},{q:"姐妹 👧",options:["brother","father","sister","mother"],answer:2},{q:"奶奶 👵",options:["grandfather","father","mother","grandmother"],answer:3},{q:"钢笔 🖊️",options:["pen","pencil","book","bag"],answer:0},{q:"铅笔 ✏️",options:["book","pencil","ruler","eraser"],answer:1},{q:"书 📖",options:["bag","ruler","book","pen"],answer:2},{q:"书包 🎒",options:["eraser","pen","pencil","bag"],answer:3},{q:"尺子 📏",options:["eraser","ruler","bag","book"],answer:1}];
+QB.yingyu.en2zh = [{q:"red",options:["蓝色 🔵","红色 🔴","绿色 🟢","黄色 🟡"],answer:1},{q:"blue",options:["黄色 🟡","绿色 🟢","蓝色 🔵","红色 🔴"],answer:2},{q:"green",options:["粉色 🩷","紫色 🟣","棕色 🟤","绿色 🟢"],answer:3},{q:"yellow",options:["黄色 🟡","黑色 ⚫","白色 ⚪","橙色 🟠"],answer:0},{q:"black",options:["白色 ⚪","黑色 ⚫","橙色 🟠","粉色 🩷"],answer:1},{q:"dog",options:["小猫 🐱","小鸟 🐦","小狗 🐶","小鱼 🐟"],answer:2},{q:"cat",options:["熊猫 🐼","老虎 🐯","猴子 🐵","小猫 🐱"],answer:3},{q:"bird",options:["小鸟 🐦","鸭子 🦆","兔子 🐰","大象 🐘"],answer:0},{q:"fish",options:["老虎 🐯","小鱼 🐟","熊猫 🐼","猴子 🐵"],answer:1},{q:"panda",options:["大象 🐘","兔子 🐰","熊猫 🐼","鸭子 🦆"],answer:2},{q:"one",options:["二 2️⃣","三 3️⃣","四 4️⃣","一 1️⃣"],answer:3},{q:"five",options:["五 5️⃣","六 6️⃣","七 7️⃣","八 8️⃣"],answer:0},{q:"nine",options:["八 8️⃣","九 9️⃣","十 🔟","七 7️⃣"],answer:1},{q:"twelve",options:["十一 1️⃣1️⃣","十三 1️⃣3️⃣","十二 1️⃣2️⃣","十四 1️⃣4️⃣"],answer:2},{q:"twenty",options:["十九 1️⃣9️⃣","十八 1️⃣8️⃣","十七 1️⃣7️⃣","二十 2️⃣0️⃣"],answer:3},{q:"father",options:["爸爸 👨","妈妈 👩","兄弟 👦","姐妹 👧"],answer:0},{q:"mother",options:["姐妹 👧","妈妈 👩","爷爷 👴","奶奶 👵"],answer:1},{q:"brother",options:["奶奶 👵","爷爷 👴","兄弟 👦","爸爸 👨"],answer:2},{q:"sister",options:["爸爸 👨","妈妈 👩","爷爷 👴","姐妹 👧"],answer:3},{q:"grandfather",options:["爷爷 👴","奶奶 👵","爸爸 👨","妈妈 👩"],answer:0},{q:"pen",options:["铅笔 ✏️","钢笔 🖊️","书 📖","书包 🎒"],answer:1},{q:"pencil",options:["尺子 📏","橡皮 🧽","铅笔 ✏️","钢笔 🖊️"],answer:2},{q:"book",options:["书包 🎒","尺子 📏","橡皮 🧽","书 📖"],answer:3},{q:"bag",options:["书包 🎒","钢笔 🖊️","铅笔 ✏️","书 📖"],answer:0},{q:"eraser",options:["尺子 📏","书包 🎒","橡皮 🧽","钢笔 🖊️"],answer:2}];
+QB.yingyu.spell = QB.yingyu.zh2en.map(e=>({ hint:e.q, word:e.options[e.answer] }));
+
+const SUBJECTS = {
+  yuwen:  { name:'语文', icon:'📖', types:{ pinyin:'看拼音选汉字', zuci:'词语组词' } },
+  shuxue: { name:'数学', icon:'🔢', types:{ kousuan:'100以内加减口算', chengfa:'乘法口诀' } },
+  yingyu: { name:'英语', icon:'🔤', types:{ zh2en:'看中文选英文', en2zh:'看英文选中文', spell:'单词拼写 ✏️' } }
+};
+const PRAISE = ['太棒了！✨','答对啦！🎉','你真聪明！🌟','非常好！👍','完美！💯'];
+const LS_KEY = 'grade2_mistakes';
+
+let cur = { subject:null, type:null, questions:[], idx:0, score:0, redoMode:false };
+
+function getMistakes(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){ return []; } }
+function saveMistakes(m){ localStorage.setItem(LS_KEY, JSON.stringify(m)); updateMCount(); }
+function updateMCount(){ const n = getMistakes().length; document.getElementById('mcount').textContent = n ? '('+n+')' : ''; }
+
+function shuffle(a){ const r=a.slice(); for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+function show(id){ ['view-home','view-quiz','view-result','view-mistakes'].forEach(v=>document.getElementById(v).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---------- 首页：题型选择 ----------
+function renderHome(subject){
+  const s = SUBJECTS[subject];
+  const types = Object.keys(s.types);
+  let html = `<div class="card"><div class="question" style="font-size:26px">${s.icon} ${s.name} · 选择题型</div>`;
+  types.forEach(t=>{
+    const n = QB[subject][t].length;
+    html += `<button class="bigbtn" onclick="startQuiz('${subject}','${t}')">${s.types[t]}<div style="font-size:16px;color:#888">题库 ${n} 道 · 每轮 10 题</div></button>`;
+  });
+  html += `</div>`;
+  document.getElementById('view-home').innerHTML = html;
+  show('view-home');
+}
+
+// ---------- 开始答题 ----------
+function startQuiz(subject, type){
+  const bank = QB[subject][type];
+  if(!bank || !bank.length){ alert('题库还没有题目'); return; }
+  const picked = shuffle(bank).slice(0, Math.min(10, bank.length));
+  cur = { subject, type,
+          questions: type==='spell' ? picked.map(q=>({hint:q.hint, word:q.word})) : picked.map(q=>prepQuestion(q)),
+          idx:0, score:0, redoMode:false };
+  if(type==='spell'){ renderSpell(); } else { renderQuestion(); show('view-quiz'); }
+}
+function prepQuestion(q){
+  const correctText = q.options[q.answer];
+  const order = shuffle(q.options.map((t,i)=>i));
+  const opts = order.map(i=>q.options[i]);
+  return { q:q.q, options:opts, correct:opts.indexOf(correctText) };
+}
+
+function renderQuestion(){
+  const qq = cur.questions[cur.idx];
+  const total = cur.questions.length;
+  let html = `<div class="card">
+    <div class="progress"><span>第 ${cur.idx+1}/${total} 题</span><span>得分 ${cur.score}</span></div>
+    <div class="bar"><div style="width:${(cur.idx/total)*100}%"></div></div>
+    <div class="question">${esc(qq.q)}</div>
+    <div id="opts">`;
+  qq.options.forEach((t,i)=>{ html += `<button class="bigbtn" id="opt${i}" onclick="answer(${i})">${esc(t)}</button>`; });
+  html += `</div><div class="feedback" id="fb"></div></div>`;
+  document.getElementById('view-quiz').innerHTML = html;
+  show('view-quiz');
+}
+
+function answer(i){
+  const qq = cur.questions[cur.idx];
+  const fb = document.getElementById('fb');
+  qq.options.forEach((_,j)=>{ document.getElementById('opt'+j).disabled = true; });
+  if(i === qq.correct){
+    document.getElementById('opt'+i).classList.add('correct');
+    cur.score++;
+    fb.className = 'feedback good';
+    fb.innerHTML = `<span class="praise-anim">✨</span> ${PRAISE[Math.floor(Math.random()*PRAISE.length)]}`;
+    setTimeout(nextQ, 1100);
+  } else {
+    document.getElementById('opt'+i).classList.add('wrong');
+    document.getElementById('opt'+qq.correct).classList.add('correct');
+    fb.className = 'feedback bad';
+    fb.textContent = '正确答案是：' + qq.options[qq.correct];
+    addMistake(qq, qq.options[i]);
+    setTimeout(nextQ, 2200);
+  }
+  // 更新进度条与得分
+  const total = cur.questions.length;
+  document.querySelector('.bar > div').style.width = ((cur.idx+1)/total*100)+'%';
+  document.querySelector('.progress span:last-child').textContent = '得分 '+cur.score;
+}
+
+function addMistake(qq, wrongText){
+  const m = getMistakes();
+  m.push({ subject:cur.subject, type:cur.type, q:qq.q, options:qq.options, answer:qq.correct, wrongText });
+  saveMistakes(m);
+}
+
+function nextQ(){
+  cur.idx++;
+  if(cur.idx < cur.questions.length){ if(cur.type==='spell'){ renderSpell(); } else { renderQuestion(); } }
+  else { renderResult(); }
+}
+
+// ---------- 单词拼写 ----------
+function renderSpell(){
+  const w = cur.questions[cur.idx];
+  const total = cur.questions.length;
+  const letters = shuffle(w.word.split(''));
+  const head = cur.redoMode
+    ? `<div class="question" style="font-size:24px">📝 错题重做 · 拼出这个单词</div>`
+    : `<div class="progress"><span>第 ${cur.idx+1}/${total} 题</span><span>得分 ${cur.score}</span></div>
+       <div class="bar"><div style="width:${(cur.idx/total)*100}%"></div></div>`;
+  let html = `<div class="card">${head}
+    <div class="question">${esc(w.hint)}</div>
+    <div style="text-align:center;margin-bottom:6px"><button class="bigbtn" style="width:auto;display:inline-block;padding:10px 30px" onclick="speakWord('${w.word}')">🔊 听一听</button></div>
+    <div id="slots" style="display:flex;justify-content:center;gap:8px;margin:14px 0;flex-wrap:wrap"></div>
+    <div id="tiles" style="display:flex;justify-content:center;gap:10px;margin:14px 0;flex-wrap:wrap"></div>
+    <div class="feedback" id="fb"></div>
+    <div style="text-align:center">
+      <button class="bigbtn" style="width:auto;display:inline-block;padding:10px 30px" onclick="renderSpell()">↩️ 重拼</button>
+      ${cur.redoMode ? `<button class="bigbtn" style="width:auto;display:inline-block;padding:10px 30px" onclick="renderMistakes()">返回错题本</button>` : ''}
+    </div></div>`;
+  document.getElementById('view-quiz').innerHTML = html;
+  const slotsEl = document.getElementById('slots');
+  w.word.split('').forEach((_,i)=>{
+    const s = document.createElement('div');
+    s.className = 'slot'; s.id = 'slot'+i;
+    slotsEl.appendChild(s);
+  });
+  const tilesEl = document.getElementById('tiles');
+  letters.forEach((ch,i)=>{
+    const b = document.createElement('button');
+    b.className = 'tile'; b.id = 'tile'+i; b.textContent = ch;
+    b.onclick = ()=>pickLetter(i);
+    tilesEl.appendChild(b);
+  });
+  show('view-quiz');
+}
+
+function speakWord(word){
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(word);
+    u.lang = 'en-US'; u.rate = 0.7;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function pickLetter(i){
+  const w = cur.questions[cur.idx];
+  const tile = document.getElementById('tile'+i);
+  if(!tile || tile.disabled) return;
+  for(let s=0;s<w.word.length;s++){
+    const slot = document.getElementById('slot'+s);
+    if(!slot.textContent){
+      slot.textContent = tile.textContent;
+      slot.dataset.tile = i;
+      slot.onclick = ()=>returnLetter(s);
+      tile.disabled = true;
+      break;
+    }
+  }
+  checkSpellDone();
+}
+
+function returnLetter(s){
+  const slot = document.getElementById('slot'+s);
+  if(!slot || !slot.textContent) return;
+  const tile = document.getElementById('tile'+slot.dataset.tile);
+  if(tile) tile.disabled = false;
+  slot.textContent = '';
+  slot.onclick = null;
+}
+
+function checkSpellDone(){
+  const w = cur.questions[cur.idx];
+  let attempt = '';
+  for(let s=0;s<w.word.length;s++){ attempt += document.getElementById('slot'+s).textContent || ''; }
+  if(attempt.length === w.word.length) gradeSpell(attempt);
+}
+
+function gradeSpell(attempt){
+  const w = cur.questions[cur.idx];
+  const fb = document.getElementById('fb');
+  document.querySelectorAll('.tile').forEach(t=>{ t.disabled = true; });
+  document.querySelectorAll('.slot').forEach(s=>{ s.onclick = null; });
+  const ok = attempt === w.word;
+  if(ok){
+    cur.score++;
+    fb.className = 'feedback good';
+    fb.innerHTML = `<span class="praise-anim">✨</span> 拼写正确！${PRAISE[Math.floor(Math.random()*PRAISE.length)]}`;
+    speakWord(w.word);
+  } else {
+    for(let s=0;s<w.word.length;s++){
+      const slot = document.getElementById('slot'+s);
+      if(slot.textContent !== w.word[s]) slot.classList.add('slot-wrong');
+    }
+    fb.className = 'feedback bad';
+    fb.innerHTML = '正确拼写是：<b>' + esc(w.word) + '</b>';
+    if(!cur.redoMode) addSpellMistake(w, attempt);
+  }
+  if(!cur.redoMode){
+    const total = cur.questions.length;
+    document.querySelector('.bar > div').style.width = ((cur.idx+1)/total*100)+'%';
+    document.querySelector('.progress span:last-child').textContent = '得分 '+cur.score;
+  }
+  setTimeout(()=>{ ok ? spellCorrectNext() : spellWrongNext(); }, ok ? 1500 : 2800);
+}
+
+function spellCorrectNext(){
+  if(cur.redoMode){
+    const m = getMistakes(); m.splice(cur.redoIdx,1); saveMistakes(m);
+    renderMistakes();
+  } else {
+    nextQ();
+  }
+}
+
+function spellWrongNext(){
+  if(cur.redoMode){ renderMistakes(); } else { nextQ(); }
+}
+
+function addSpellMistake(w, attempt){
+  const m = getMistakes();
+  m.push({ subject:'yingyu', type:'spell', q:w.hint, word:w.word, wrongText:attempt });
+  saveMistakes(m);
+}
+
+// ---------- 结束页 ----------
+function renderResult(){
+  const total = cur.questions.length, s = cur.score;
+  let stars, msg;
+  if(s >= 9){ stars='⭐⭐⭐'; msg='太厉害了，你是小状元！🎓'; }
+  else if(s >= 7){ stars='⭐⭐'; msg='很不错，继续保持！💪'; }
+  else { stars='⭐'; msg='继续加油，你一定可以的！🌱'; }
+  document.getElementById('view-result').innerHTML = `<div class="card">
+    <div class="stars">${stars}</div>
+    <div class="score-big">得分：${s} / ${total}</div>
+    <div class="encourage">${msg}</div>
+    <button class="bigbtn primary" onclick="startQuiz('${cur.subject}','${cur.type}')">再来一轮 🔄</button>
+    <button class="bigbtn" onclick="renderHome('${cur.subject}')">返回题型选择</button>
+  </div>`;
+  show('view-result');
+}
+
+// ---------- 错题本 ----------
+function renderMistakes(){
+  const m = getMistakes();
+  let html = '';
+  if(!m.length){
+    html = `<div class="card"><div class="encourage" style="font-size:24px">错题本空空如也，继续保持！🎈</div></div>`;
+  } else {
+    const groups = {};
+    m.forEach((it,idx)=>{ (groups[it.subject] = groups[it.subject]||[]).push({it,idx}); });
+    Object.keys(groups).forEach(sub=>{
+      html += `<div class="group-title">${SUBJECTS[sub].icon} ${SUBJECTS[sub].name}（${groups[sub].length} 道）</div>`;
+      groups[sub].forEach(({it,idx})=>{
+        const isSpell = it.type==='spell';
+        html += `<div class="mistake-item">
+          <div class="mq">${esc(it.q)}${isSpell?' ✏️拼写':''}</div>
+          <div class="ma">✅ ${isSpell?'正确拼写':'正确答案'}：${esc(isSpell?it.word:it.options[it.answer])}</div>
+          <div class="mw">❌ ${isSpell?'当时拼成':'当时选了'}：${esc(it.wrongText)}</div>
+          <button onclick="redoMistake(${idx})">重做这道题 ✏️</button>
+        </div>`;
+      });
+    });
+  }
+  document.getElementById('view-mistakes').innerHTML = html;
+  show('view-mistakes');
+}
+
+function redoMistake(idx){
+  const m = getMistakes();
+  const it = m[idx];
+  if(!it) return;
+  if(it.type==='spell'){
+    cur = { subject:'yingyu', type:'spell',
+            questions:[{ hint:it.q, word:it.word }],
+            idx:0, score:0, redoMode:true, redoIdx:idx };
+    renderSpell();
+    return;
+  }
+  const order = shuffle(it.options.map((t,i)=>i));
+  const opts = order.map(i=>it.options[i]);
+  cur = { subject:it.subject, type:it.type,
+          questions:[{ q:it.q, options:opts, correct:opts.indexOf(it.options[it.answer]) }],
+          idx:0, score:0, redoMode:true, redoIdx:idx };
+  renderRedo();
+}
+
+function renderRedo(){
+  const qq = cur.questions[0];
+  let html = `<div class="card">
+    <div class="question" style="font-size:24px">📝 错题重做</div>
+    <div class="question">${esc(qq.q)}</div><div id="opts">`;
+  qq.options.forEach((t,i)=>{ html += `<button class="bigbtn" id="opt${i}" onclick="answerRedo(${i})">${esc(t)}</button>`; });
+  html += `</div><div class="feedback" id="fb"></div>
+    <button class="bigbtn" onclick="renderMistakes()">返回错题本</button></div>`;
+  document.getElementById('view-quiz').innerHTML = html;
+  show('view-quiz');
+}
+
+function answerRedo(i){
+  const qq = cur.questions[0];
+  const fb = document.getElementById('fb');
+  qq.options.forEach((_,j)=>{ document.getElementById('opt'+j).disabled = true; });
+  if(i === qq.correct){
+    document.getElementById('opt'+i).classList.add('correct');
+    fb.className = 'feedback good';
+    fb.innerHTML = `<span class="praise-anim">🎉</span> 已掌握，移出错题本！`;
+    const m = getMistakes(); m.splice(cur.redoIdx,1); saveMistakes(m);
+    setTimeout(renderMistakes, 1500);
+  } else {
+    document.getElementById('opt'+i).classList.add('wrong');
+    document.getElementById('opt'+qq.correct).classList.add('correct');
+    fb.className = 'feedback bad';
+    fb.textContent = '正确答案是：' + qq.options[qq.correct] + '，继续留在错题本加油！';
+  }
+}
+
+// ---------- Tab 切换 ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const s = t.dataset.s;
+    if(s === 'mistakes'){ renderMistakes(); } else { renderHome(s); }
+  });
+});
+
+updateMCount();
+renderHome('yuwen');
+</script>
+</body>
+</html>
